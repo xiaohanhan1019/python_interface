@@ -66,13 +66,13 @@ class WordDetail(Resource):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument('word', type=str, help='your word', required=True)
 
-    def get(self):
+    def post(self):
         args = self.parser.parse_args()
         word = args['word']
         builder = IndexBuilder('./mdx_resolve/mdx/Collins.mdx')
         css = builder.mdd_lookup('\\CollinsEC.css')[0].decode()
         result_text = builder.mdx_lookup(word)
-        return css+result_text[0]
+        return '<style>'+css+'</style>'+result_text[0]
 
 
 # 注册接口
@@ -99,7 +99,7 @@ class Register(Resource):
 
 api.add_resource(SearchWord, '/searchWord', methods=['POST'])
 api.add_resource(Register, '/register', methods=['POST'])
-api.add_resource(WordDetail, '/wordDetail', methods=['get'])
+api.add_resource(WordDetail, '/wordDetail', methods=['POST'])
 
 if __name__ == '__main__':
     # app.run(host='0.0.0.0', port=5000)
