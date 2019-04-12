@@ -6,7 +6,7 @@ from mdx_resolve.mdict_query import IndexBuilder
 from flask import Flask
 from flask_restful import reqparse, abort, Api, Resource
 
-import sqlalchemy
+from sqlalchemy import ForeignKey
 import sqlalchemy.orm
 import sqlalchemy.ext.declarative
 
@@ -32,7 +32,15 @@ class User(BaseModel):
     password = sqlalchemy.Column("password", sqlalchemy.String(50), nullable=False)
 
 
-# 搜索结果排序,按照小写字典序
+class WordList(BaseModel):
+    __tablename__ = 'word_list'
+
+    id = sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True)
+    user_id = sqlalchemy.Column("user_id", sqlalchemy.Integer, ForeignKey("user.user_id"), nullable=False)
+    name = sqlalchemy.Column("name", sqlalchemy.String(50), nullable=False)
+
+
+# 按照小写字典序,对搜索结果进行排序
 def cmp_ignore_case(s1, s2):
     s1 = s1.lower()
     s2 = s2.lower()
@@ -72,7 +80,7 @@ class WordDetail(Resource):
         builder = IndexBuilder('./mdx_resolve/mdx/Collins.mdx')
         css = builder.mdd_lookup('\\CollinsEC.css')[0].decode()
         result_text = builder.mdx_lookup(word)
-        return '<style>'+css+'</style>'+result_text[0]
+        return {'html': result_text[0], 'css': '<style>'+css+'</style>'}
 
 
 # 注册接口
@@ -89,17 +97,109 @@ class Register(Resource):
         user = User(account=account, password=password)
         # 判断是否有该用户名
         exist_user = session.query(User).filter(User.account == account)
-        if exist_user.count() == 0:
-            session.add(user)
-            session.commit()
-            return {'statusCode': 201}
+        try:
+            if exist_user.count() == 0:
+                session.add(user)
+                session.commit()
+                return {'statusCode': 201}
+            else:
+                return {'statusCode': 400, 'message': '用户名已存在'}
+        except:
+            return {'statusCode': 400, 'message': 'system error'}
+
+
+# 登陆接口
+class Login(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('account', type=str, help='your account', required=True)
+        self.parser.add_argument('password', type=str, help='your password', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        account = args['account']
+        password = args['password']
+        user = User(account=account, password=password)
+        # 判断是否有该用户名
+        exist_user = session.query(User).filter(User.account == account)
+        if exist_user.count() == 1:
+            if user.password == password:
+                return {'statusCode': 201, 'message': '登陆成功'}
+            else:
+                return {'statusCode': 400, 'message': '密码不正确'}
         else:
-            return {'statusCode': 400, 'message': '用户名已存在'}
+            return {'statusCode': 400, 'message': '用户不存在'}
 
 
-api.add_resource(SearchWord, '/searchWord', methods=['POST'])
+# 获取用户信息
+class GetUserInfoById(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('id', type=int, help='your user id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+
+
+# 新建单词表
+class AddWordList(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('id', type=int, help='user id', required=True)
+        self.parser.add_argument('name', type=str, help='word list name', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        user_id = args["id"]
+        name = args["name"]
+        word_list = WordList(user_id=user_id, name=name)
+        try:
+            session.add(word_list)
+            session.commit()
+            return {'statusCode': 201, 'message': '成功'}
+        except:
+            return {'statusCode': 400, 'message': 'system error'}
+
+
+# 获取用户所有单词表
+class GetAllUserWordListByUserId(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('id', type=int, help='user id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+
+
+# 获取单词表详情
+class GetWordListById(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('id', type=int, help='word list id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+
+
+# 删除单词表
+class DeleteWordListById(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('id', type=int, help='word list id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+
+
+# 单词表添加单词/删除单词
+
+
 api.add_resource(Register, '/register', methods=['POST'])
+api.add_resource(Login, '/login', methods=['POST'])
+api.add_resource(GetUserInfoById, '/getUserInfo', methods=['POST'])
+api.add_resource(SearchWord, '/searchWord', methods=['POST'])
 api.add_resource(WordDetail, '/wordDetail', methods=['POST'])
+api.add_resource(AddWordList, '/addWordList', methods=['POST'])
 
 if __name__ == '__main__':
     # app.run(host='0.0.0.0', port=5000)
