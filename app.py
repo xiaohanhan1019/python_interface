@@ -88,7 +88,7 @@ class WordDetail(Resource):
         builder = IndexBuilder('./mdx_resolve/mdx/Collins.mdx')
         css = builder.mdd_lookup('\\CollinsEC.css')[0].decode()
         result_text = builder.mdx_lookup(word)
-        return {'html': result_text[0], 'css': '<style>'+css+'</style>'}
+        return {'html': result_text[0][:6]+'<meta name="viewport" content="width=device-width,initial-scale=1.0">'+result_text[0][6:], 'css': '<style>'+css+'</style>'}
 
 
 # 注册接口
