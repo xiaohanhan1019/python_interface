@@ -30,6 +30,14 @@ class User(BaseModel):
     id = sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True)
     account = sqlalchemy.Column("account", sqlalchemy.String(50), nullable=False)
     password = sqlalchemy.Column("password", sqlalchemy.String(50), nullable=False)
+    nickname = sqlalchemy.Column("nickname", sqlalchemy.String(50), nullable=False)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'account': self.account,
+            'nickname': self.nickname
+        }
 
 
 class WordList(BaseModel):
@@ -51,7 +59,7 @@ def cmp_ignore_case(s1, s2):
     return 0
 
 
-# 搜索匹配的单词，返回10个
+# 搜索匹配的单词，返回20个
 class SearchWord(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
@@ -101,11 +109,11 @@ class Register(Resource):
             if exist_user.count() == 0:
                 session.add(user)
                 session.commit()
-                return {'statusCode': 201}
+                return {'message': '注册成功'}
             else:
-                return {'statusCode': 400, 'message': '用户名已存在'}
+                return {'message': '用户名已存在'}
         except:
-            return {'statusCode': 400, 'message': 'system error'}
+            return {'message': 'system error'}
 
 
 # 登陆接口
@@ -124,11 +132,11 @@ class Login(Resource):
         exist_user = session.query(User).filter(User.account == account)
         if exist_user.count() == 1:
             if user.password == password:
-                return {'statusCode': 201, 'message': '登陆成功'}
+                return {'message': '登陆成功'}
             else:
-                return {'statusCode': 400, 'message': '密码不正确'}
+                return {'message': '密码不正确'}
         else:
-            return {'statusCode': 400, 'message': '用户不存在'}
+            return {'message': '用户不存在'}
 
 
 # 获取用户信息
@@ -139,6 +147,12 @@ class GetUserInfoById(Resource):
 
     def post(self):
         args = self.parser.parse_args()
+        user_id = args['id']
+        user = session.query(User).filter(User.id == user_id)
+        if user.count() == 1:
+            return user[0].to_json()
+        else:
+            return {'message': '用户不存在'}
 
 
 # 新建单词表
@@ -156,9 +170,9 @@ class AddWordList(Resource):
         try:
             session.add(word_list)
             session.commit()
-            return {'statusCode': 201, 'message': '成功'}
+            return {'message': '成功'}
         except:
-            return {'statusCode': 400, 'message': 'system error'}
+            return {'message': 'system error'}
 
 
 # 获取用户所有单词表
