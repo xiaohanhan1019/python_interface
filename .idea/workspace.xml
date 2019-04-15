@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d6680bd1-cb97-4a51-88cc-fd05eb3bfaae" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/import_mdx_to_db.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
     </list>
@@ -16,20 +17,21 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/app.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1431">
-              <caret line="150" column="33" selection-start-line="150" selection-start-column="33" selection-end-line="150" selection-end-column="33" />
+            <state relative-caret-position="284">
+              <caret line="195" column="11" lean-forward="true" selection-start-line="195" selection-start-column="11" selection-end-line="195" selection-end-column="11" />
+              <folding>
+                <element signature="e#1362#1479#0" />
+                <element signature="e#2130#2617#0" />
+              </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/mdx_resolve/mdict_query.py">
+        <entry file="file://$PROJECT_DIR$/import_mdx_to_db.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-2251">
-              <caret line="37" column="24" selection-start-line="37" selection-start-column="24" selection-end-line="37" selection-end-column="24" />
-              <folding>
-                <element signature="e#26#56#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="284">
+              <caret line="37" lean-forward="true" selection-start-line="37" selection-end-line="37" />
             </state>
           </provider>
         </entry>
@@ -57,20 +59,15 @@
       <list>
         <option value="$PROJECT_DIR$/mdx_resolve/__init__.py" />
         <option value="$PROJECT_DIR$/mdx_resolve/mdict_query.py" />
+        <option value="$PROJECT_DIR$/import_mdx_to_db.py" />
         <option value="$PROJECT_DIR$/app.py" />
       </list>
     </option>
   </component>
-  <component name="ProjectConfigurationFiles">
-    <option name="files">
-      <list>
-        <option value="$PROJECT_DIR$/.idea/vcs.xml" />
-      </list>
-    </option>
-  </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="445" />
-    <option name="width" value="1230" />
+    <option name="x" value="57" />
+    <option name="y" value="7" />
+    <option name="width" value="1555" />
     <option name="height" value="1025" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
@@ -87,11 +84,6 @@
               <item name="python_interface" type="b2602c69:ProjectViewProjectNode" />
               <item name="python_interface" type="462c0819:PsiDirectoryNode" />
             </path>
-            <path>
-              <item name="python_interface" type="b2602c69:ProjectViewProjectNode" />
-              <item name="python_interface" type="462c0819:PsiDirectoryNode" />
-              <item name="mdx_resolve" type="462c0819:PsiDirectoryNode" />
-            </path>
           </expand>
           <select />
         </subPane>
@@ -104,6 +96,7 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="settings.editor.selected.configurable" value="preferences.keymap" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -118,6 +111,28 @@
     </option>
   </component>
   <component name="RunManager" selected="Flask server.Flask (app.py)">
+    <configuration name="import_mdx_to_db" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="python_interface" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/import_mdx_to_db.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="Flask (app.py)" type="Python.FlaskServer" temporary="true" nameIsGenerated="true">
       <module name="python_interface" />
       <option name="target" value="$PROJECT_DIR$/app.py" />
@@ -125,7 +140,7 @@
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
@@ -140,7 +155,7 @@
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
@@ -151,6 +166,7 @@
     <recent_temporary>
       <list>
         <item itemvalue="Flask server.Flask (app.py)" />
+        <item itemvalue="Python.import_mdx_to_db" />
       </list>
     </recent_temporary>
   </component>
@@ -170,7 +186,7 @@
       <workItem from="1554960622726" duration="12277000" />
       <workItem from="1555046371198" duration="2580000" />
       <workItem from="1555060691654" duration="6652000" />
-      <workItem from="1555124786781" duration="4476000" />
+      <workItem from="1555124786781" duration="23808000" />
     </task>
     <task id="LOCAL-00001" summary="sort search result">
       <created>1554961300984</created>
@@ -193,11 +209,18 @@
       <option name="project" value="LOCAL" />
       <updated>1555078201729</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="update">
+      <created>1555249937759</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1555249937759</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="42668000" />
+    <option name="totallyTimeSpent" value="62000000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1550" height="878" extended-state="6" />
@@ -208,8 +231,8 @@
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.28820375" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.39812332" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.3230563" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.36595175" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
@@ -233,21 +256,12 @@
     <MESSAGE value="sort search result" />
     <MESSAGE value="add register and word detail" />
     <MESSAGE value="word_list" />
-    <option name="LAST_COMMIT_MESSAGE" value="word_list" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/app.py</url>
-          <line>36</line>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+    <MESSAGE value="update" />
+    <option name="LAST_COMMIT_MESSAGE" value="update" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/python_interface$Flask__app_py_.coverage" NAME="Flask (app.py) Coverage Results" MODIFIED="1555249297232" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/python_interface$import_mdx_to_db.coverage" NAME="import_mdx_to_db Coverage Results" MODIFIED="1555308755161" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/python_interface$Flask__app_py_.coverage" NAME="Flask (app.py) Coverage Results" MODIFIED="1555323141527" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/mdx_resolve/__init__.py">
@@ -263,13 +277,34 @@
     <entry file="file://$PROJECT_DIR$/mdx_resolve/static/cache here.txt">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
+    <entry file="file://$USER_HOME$/AppData/Local/Programs/Python/Python37/Lib/site-packages/flask/app.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="133">
+          <caret line="1812" selection-start-line="1812" selection-end-line="1812" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/mdx_resolve/mdict_query.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2251">
-          <caret line="37" column="24" selection-start-line="37" selection-start-column="24" selection-end-line="37" selection-end-column="24" />
+        <state relative-caret-position="238">
+          <caret line="168" column="26" lean-forward="true" selection-start-line="168" selection-start-column="26" selection-end-line="168" selection-end-column="26" />
           <folding>
             <element signature="e#26#56#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/import_mdx_to_db.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="284">
+          <caret line="37" lean-forward="true" selection-start-line="37" selection-end-line="37" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/AppData/Local/Programs/Python/Python37/Lib/site-packages/flask/cli.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="205">
+          <caret line="249" lean-forward="true" selection-start-line="249" selection-end-line="249" />
         </state>
       </provider>
     </entry>
@@ -280,24 +315,21 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/AppData/Local/Programs/Python/Python37/Lib/site-packages/flask/app.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="133">
-          <caret line="1812" selection-start-line="1812" selection-end-line="1812" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/AppData/Local/Programs/Python/Python37/Lib/site-packages/flask_restful/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="209">
-          <caret line="461" selection-start-line="461" selection-end-line="461" />
+        <state relative-caret-position="129">
+          <caret line="572" selection-start-line="572" selection-end-line="572" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/app.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1431">
-          <caret line="150" column="33" selection-start-line="150" selection-start-column="33" selection-end-line="150" selection-end-column="33" />
+        <state relative-caret-position="284">
+          <caret line="195" column="11" lean-forward="true" selection-start-line="195" selection-start-column="11" selection-end-line="195" selection-end-column="11" />
+          <folding>
+            <element signature="e#1362#1479#0" />
+            <element signature="e#2130#2617#0" />
+          </folding>
         </state>
       </provider>
     </entry>
