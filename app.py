@@ -337,6 +337,8 @@ class DislikedWordList(Resource):
         user_id = args["user_id"]
         word_list_id = args["wordList_id"]
 
+        # 不可取消未收藏的单词表
+
         try:
             session.execute(user_wordList.delete().where(
                 and_(
