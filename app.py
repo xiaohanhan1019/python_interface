@@ -6,12 +6,13 @@ from mdx_resolve.mdict_query import IndexBuilder
 from flask import Flask
 from flask_restful import reqparse, abort, Api, Resource
 
-from sqlalchemy import Table, Column, Integer, String, ForeignKey, and_
+from sqlalchemy import Table, Column, Integer, String, ForeignKey, and_, select, func
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy.ext.declarative
 
 import functools
+import datetime
 
 app = Flask(__name__)
 api = Api(app)
@@ -25,6 +26,17 @@ DBSession = sqlalchemy.orm.sessionmaker(bind=engine)
 session = DBSession()
 
 
+word_wordList = Table('wordList_has_word', Base.metadata,
+                      Column('wordList_id', Integer, ForeignKey('wordList.id'), primary_key=True),
+                      Column('word_id', Integer, ForeignKey('word.id'), primary_key=True)
+                      )
+
+user_wordList = Table('user_like_wordList', Base.metadata,
+                      Column('user_id', Integer, ForeignKey('user.id'), primary_key=True),
+                      Column('wordList_id', Integer, ForeignKey('wordList.id'), primary_key=True)
+                      )
+
+
 class User(Base):
     __tablename__ = 'user'
 
@@ -33,11 +45,11 @@ class User(Base):
     password = sqlalchemy.Column("password", sqlalchemy.String(50), nullable=False)
     nickname = sqlalchemy.Column("nickname", sqlalchemy.String(50), nullable=False)
 
-
-ww = Table('word_list_word', Base.metadata,
-           Column('word_list_id', Integer, ForeignKey('word_list.id'), primary_key=True),
-           Column('word_id', Integer, ForeignKey('word.id'), primary_key=True)
-           )
+    liked_word_list = relationship('WordList',
+                                   secondary=user_wordList,
+                                   backref=backref('wordList', lazy='dynamic'),
+                                   lazy='dynamic'
+                                   )
 
 
 class Word(Base):
@@ -48,15 +60,16 @@ class Word(Base):
 
 
 class WordList(Base):
-    __tablename__ = 'word_list'
+    __tablename__ = 'wordList'
 
     id = sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True)
     user_id = sqlalchemy.Column("user_id", sqlalchemy.Integer, ForeignKey("user.id"), nullable=False)
     name = sqlalchemy.Column("name", sqlalchemy.String(50), nullable=False)
+    create_time = sqlalchemy.Column("create_time", sqlalchemy.DATE, default=datetime.datetime.utcnow())
 
-    # 级联删除
+    # todo 级联删除
     words = relationship('Word',
-                         secondary=ww,
+                         secondary=word_wordList,
                          backref=backref('word', lazy='dynamic', cascade="all,delete"),
                          lazy='dynamic'
                          )
@@ -131,8 +144,8 @@ class Register(Resource):
                 return {'message': '注册成功'}
             else:
                 return {'message': '用户名已存在'}
-        except:
-            return {'message': 'system error'}
+        except Exception as e:
+            return {'message': str(e)}
 
 
 # 登陆接口
@@ -153,8 +166,8 @@ class Login(Resource):
                 return {'message': '登陆成功'}
             else:
                 return {'message': '密码不正确'}
-        except:
-            return {'message': '用户不存在'}
+        except Exception as e:
+            return {'message': '用户不存在' + str(e)}
 
 
 # 获取用户信息
@@ -169,39 +182,58 @@ class GetUserInfoById(Resource):
         try:
             user = session.query(User).filter(User.id == user_id).one()
             return to_dict(user)
-        except:
-            return {'message': '用户不存在'}
+        except Exception as e:
+            return {'message': str(e)}
 
 
 # 新建单词表
 class AddWordList(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument('id', type=int, help='user id', required=True)
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
         self.parser.add_argument('name', type=str, help='word list name', required=True)
 
     def post(self):
         args = self.parser.parse_args()
-        user_id = args["id"]
+        user_id = args["user_id"]
         name = args["name"]
         word_list = WordList(user_id=user_id, name=name)
         try:
             session.add(word_list)
             session.commit()
             return {'message': '成功'}
-        except:
-            return {'message': '失败'}
+        except Exception as e:
+            return {'message': str(e)}
+
+
+# 删除单词表
+# todo 删除单词表只是该单词表不属于该用户，数据需要保存，否则别的用户收藏了就会出问题
+class DelWordListById(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('id', type=int, help='word list id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        word_list_id = args['id']
+        try:
+            # todo 不太懂这个级联删除
+            session.query(WordList).filter(WordList.id == word_list_id).delete()
+            session.commit()
+            return {'message': '成功'}
+        except Exception as e:
+            return {'message': str(e)}
 
 
 # 获取用户所有单词表
 class GetAllUserWordListByUserId(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument('id', type=int, help='user id', required=True)
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
 
     def post(self):
         args = self.parser.parse_args()
-        user_id = args['id']
+        user_id = args['user_id']
         word_lists = session.query(WordList).filter(WordList.user_id == user_id).all()
         result = {'word_list': []}
         for word_list in word_lists:
@@ -228,11 +260,11 @@ class AddWordToWordList(Resource):
         word_list_id = args['id']
         word_id = args['word_id']
         try:
-            session.execute(ww.insert().values(word_list_id=word_list_id, word_id=word_id))
+            session.execute(word_wordList.insert().values(wordList_id=word_list_id, word_id=word_id))
             session.commit()
             return {'message': '成功'}
-        except:
-            return {'message': '失败'}
+        except Exception as e:
+            return {'message': str(e)}
 
 
 # 单词表删除单词
@@ -247,29 +279,98 @@ class DelWordFromWordList(Resource):
         word_list_id = args['id']
         word_id = args['word_id']
         try:
-            session.execute(ww.delete().where(
+            # 判断单词是否在单词表
+            word_cnt = session.execute(select([word_wordList]).where(
                 and_(
-                    ww.c.word_id == word_id,
-                    ww.c.word_list_id == word_list_id)
+                    word_wordList.c.word_id == word_id,
+                    word_wordList.c.wordList_id == word_list_id)
+            )).rowcount
+            if word_cnt == 0:
+                return {'message': '删除的单词并不在单词表中'}
+
+            session.execute(word_wordList.delete().where(
+                and_(
+                    word_wordList.c.word_id == word_id,
+                    word_wordList.c.wordList_id == word_list_id)
             ))
             session.commit()
             return {'message': '成功'}
         except Exception as e:
-            print('Reason:', e)
-            return {'message': '失败'}
+            return {'message': str(e)}
 
 
-# 删除单词表
-class DeleteWordListById(Resource):
+# 收藏单词表
+class LikedWordList(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument('id', type=int, help='word list id', required=True)
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
+        self.parser.add_argument('wordList_id', type=str, help='word list id', required=True)
 
     def post(self):
         args = self.parser.parse_args()
-        word_list_id = args['id']
-        # todo
-        session.query(WordList).filter(WordList.id == word_list_id).delete()
+        user_id = args["user_id"]
+        word_list_id = args["wordList_id"]
+
+        try:
+            # 用户不可收藏自己的单词表
+            word_list = session.query(WordList).filter(WordList.id == word_list_id).one()
+            if word_list.user_id == user_id:
+                return {'message': '你不能收藏自己的单词表'}
+
+            session.execute(user_wordList.insert().values(user_id=user_id, wordList_id=word_list_id))
+            session.commit()
+            return {'message': '成功'}
+        except Exception as e:
+            return {'message': str(e)}
+
+
+# 取消收藏单词表
+# todo 不可取消未收藏的单词表
+class DislikedWordList(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
+        self.parser.add_argument('wordList_id', type=str, help='word list id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        user_id = args["user_id"]
+        word_list_id = args["wordList_id"]
+
+        try:
+            session.execute(user_wordList.delete().where(
+                and_(
+                    user_wordList.c.user_id == user_id,
+                    user_wordList.c.wordList_id == word_list_id)
+            ))
+            session.commit()
+            return {'message': '成功'}
+        except Exception as e:
+            return {'message': str(e)}
+
+
+# 获取用户收藏单词表
+class GetAllUserLikedWordList(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        user_id = args['user_id']
+        user = session.query(User).filter(User.id == user_id).one()
+        word_lists = user.liked_word_list
+        result = {'word_list': []}
+        for word_list in word_lists:
+            result_word_list = {
+                'name': word_list.name,
+                'words': []
+            }
+            words = word_list.words.all()
+            for word in words:
+                result_word_list['words'].append(to_dict(word))
+            result['word_list'].append(result_word_list)
+        return result
 
 
 api.add_resource(Register, '/register', methods=['POST'])
@@ -283,6 +384,11 @@ api.add_resource(GetAllUserWordListByUserId, '/getAllUserWordList', methods=['PO
 api.add_resource(AddWordToWordList, '/addWordToWordList', methods=['POST'])
 api.add_resource(DelWordFromWordList, '/delWordFromWordList', methods=['POST'])
 api.add_resource(AddWordList, '/addWordList', methods=['POST'])
+api.add_resource(DelWordListById, '/delWordList', methods=['POST'])
+
+api.add_resource(GetAllUserLikedWordList, '/getAllUserLikedWordList', methods=['POST'])
+api.add_resource(LikedWordList, '/likedWordList', methods=['POST'])
+api.add_resource(DislikedWordList, '/dislikedWordList', methods=['POST'])
 
 if __name__ == '__main__':
     # app.run(host='0.0.0.0', port=5000)
