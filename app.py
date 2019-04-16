@@ -235,7 +235,7 @@ class GetAllUserWordListByUserId(Resource):
         args = self.parser.parse_args()
         user_id = args['user_id']
         word_lists = session.query(WordList).filter(WordList.user_id == user_id).all()
-        result = {'word_list': []}
+        result = []
         for word_list in word_lists:
             result_word_list = {
                 'name': word_list.name,
@@ -244,7 +244,7 @@ class GetAllUserWordListByUserId(Resource):
             words = word_list.words.all()
             for word in words:
                 result_word_list['words'].append(to_dict(word))
-            result['word_list'].append(result_word_list)
+            result.append(result_word_list)
         return result
 
 
@@ -362,7 +362,7 @@ class GetAllUserLikedWordList(Resource):
         user_id = args['user_id']
         user = session.query(User).filter(User.id == user_id).one()
         word_lists = user.liked_word_list
-        result = {'word_list': []}
+        result = []
         for word_list in word_lists:
             result_word_list = {
                 'name': word_list.name,
@@ -371,7 +371,7 @@ class GetAllUserLikedWordList(Resource):
             words = word_list.words.all()
             for word in words:
                 result_word_list['words'].append(to_dict(word))
-            result['word_list'].append(result_word_list)
+            result.append(result_word_list)
         return result
 
 
