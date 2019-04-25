@@ -13,6 +13,7 @@ import sqlalchemy.ext.declarative
 
 import functools
 import datetime
+import os, base64, time
 
 app = Flask(__name__)
 api = Api(app)
@@ -24,7 +25,6 @@ Base = sqlalchemy.ext.declarative.declarative_base()
 # 利用Session对象连接数据库
 DBSession = sqlalchemy.orm.sessionmaker(bind=engine)
 session = DBSession()
-
 
 word_wordList = Table('wordList_has_word', Base.metadata,
                       Column('wordList_id', Integer, ForeignKey('wordList.id'), primary_key=True),
@@ -44,6 +44,8 @@ class User(Base):
     account = sqlalchemy.Column("account", sqlalchemy.String(50), nullable=False)
     password = sqlalchemy.Column("password", sqlalchemy.String(50), nullable=False)
     nickname = sqlalchemy.Column("nickname", sqlalchemy.String(50), nullable=False)
+    status = sqlalchemy.Column("status", sqlalchemy.String(255), nullable=True)
+    image_url = sqlalchemy.Column("image_url", sqlalchemy.String(255), nullable=True)
 
     liked_word_list = relationship('WordList',
                                    secondary=user_wordList,
@@ -86,8 +88,20 @@ def cmp_ignore_case(s1, s2):
     return 0
 
 
+# 转换为json
 def to_dict(self):
     return {c.name: getattr(self, c.name, None) for c in self.__table__.columns}
+
+
+# 获取时间戳
+def get_time_stamp():
+    ct = time.time()
+    local_time = time.localtime(ct)
+    data_head = time.strftime("%Y-%m-%d %H:%M:%S", local_time)
+    data_secs = (ct - int(ct)) * 1000
+    time_stamp = "%s.%03d" % (data_head, data_secs)
+    stamp = ("".join(time_stamp.split()[0].split("-")) + "".join(time_stamp.split()[1].split(":"))).replace('.', '')
+    return stamp
 
 
 # 搜索匹配的单词，返回20个
@@ -134,18 +148,19 @@ class Register(Resource):
         args = self.parser.parse_args()
         account = args['account']
         password = args['password']
-        user = User(account=account, password=password)
+        user = User(account=account, password=password, nickname=account)
         # 判断是否有该用户名
         exist_user_count = session.query(User).filter(User.account == account).count()
         try:
             if exist_user_count == 0:
                 session.add(user)
                 session.commit()
-                return {'message': '注册成功'}
+                return {'message': '注册成功'}, 200
             else:
-                return {'message': '用户名已存在'}
+                return {'message': '用户名已存在'}, 401
         except Exception as e:
-            return {'message': str(e)}
+            session.rollback()
+            return {'message': str(e)}, 400
 
 
 # 登陆接口
@@ -162,28 +177,58 @@ class Login(Resource):
         # 判断是否有该用户名
         try:
             exist_user = session.query(User).filter(User.account == account).one()
+            session.commit()
             if exist_user.password == password:
-                return {'message': '登陆成功'}
+                return to_dict(exist_user), 200
             else:
-                return {'message': '密码不正确'}
+                return {'message': '密码不正确'}, 401
         except Exception as e:
-            return {'message': '用户不存在' + str(e)}
+            session.rollback()
+            return {'message': '用户不存在' + str(e)}, 400
 
 
 # 获取用户信息
 class GetUserInfoById(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument('id', type=int, help='your user id', required=True)
+        self.parser.add_argument('user_id', type=int, help='your user id', required=True)
 
     def post(self):
         args = self.parser.parse_args()
-        user_id = args['id']
+        user_id = args['user_id']
         try:
             user = session.query(User).filter(User.id == user_id).one()
+            session.commit()
             return to_dict(user)
         except Exception as e:
+            session.rollback()
             return {'message': str(e)}
+
+
+# 修改用户信息
+class EditUserInfoById(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('user_id', type=int, help='your user id', required=True)
+        self.parser.add_argument('nickname', type=str, help='your nickname', required=False)
+        self.parser.add_argument('status', type=str, help='your status', required=False)
+
+    def post(self):
+        args = self.parser.parse_args()
+        user_id = args['user_id']
+        nickname = args['nickname']
+        status = args['status']
+        try:
+            user = session.query(User).filter(User.id == user_id).one()
+            if nickname is not None:
+                user.nickname = nickname
+            if status is not None:
+                user.status = status
+            session.commit()
+            return {'message': '修改成功'}, 200
+        except Exception as e:
+            session.rollback()
+            return {'message': str(e)}, 400
 
 
 # 新建单词表
@@ -203,6 +248,7 @@ class AddWordList(Resource):
             session.commit()
             return {'message': '成功'}
         except Exception as e:
+            session.rollback()
             return {'message': str(e)}
 
 
@@ -217,11 +263,12 @@ class DelWordListById(Resource):
         args = self.parser.parse_args()
         word_list_id = args['id']
         try:
-            # todo 不太懂这个级联删除
+            # todo 不太懂这个级联删除,现在可以级联删除
             session.query(WordList).filter(WordList.id == word_list_id).delete()
             session.commit()
             return {'message': '成功'}
         except Exception as e:
+            session.rollback()
             return {'message': str(e)}
 
 
@@ -234,18 +281,23 @@ class GetAllUserWordListByUserId(Resource):
     def post(self):
         args = self.parser.parse_args()
         user_id = args['user_id']
-        word_lists = session.query(WordList).filter(WordList.user_id == user_id).all()
-        result = []
-        for word_list in word_lists:
-            result_word_list = {
-                'name': word_list.name,
-                'words': []
-            }
-            words = word_list.words.all()
-            for word in words:
-                result_word_list['words'].append(to_dict(word))
-            result.append(result_word_list)
-        return result
+        try:
+            word_lists = session.query(WordList).filter(WordList.user_id == user_id).all()
+            result = []
+            for word_list in word_lists:
+                result_word_list = {
+                    'name': word_list.name,
+                    'words': []
+                }
+                words = word_list.words.all()
+                for word in words:
+                    result_word_list['words'].append(to_dict(word))
+                result.append(result_word_list)
+            session.commit()
+            return result
+        except Exception as e:
+            session.rollback()
+            return {'message': str(e)}
 
 
 # 单词表添加单词
@@ -264,6 +316,7 @@ class AddWordToWordList(Resource):
             session.commit()
             return {'message': '成功'}
         except Exception as e:
+            session.rollback()
             return {'message': str(e)}
 
 
@@ -296,6 +349,7 @@ class DelWordFromWordList(Resource):
             session.commit()
             return {'message': '成功'}
         except Exception as e:
+            session.rollback()
             return {'message': str(e)}
 
 
@@ -321,6 +375,7 @@ class LikedWordList(Resource):
             session.commit()
             return {'message': '成功'}
         except Exception as e:
+            session.rollback()
             return {'message': str(e)}
 
 
@@ -348,6 +403,7 @@ class DislikedWordList(Resource):
             session.commit()
             return {'message': '成功'}
         except Exception as e:
+            session.rollback()
             return {'message': str(e)}
 
 
@@ -360,24 +416,58 @@ class GetAllUserLikedWordList(Resource):
     def post(self):
         args = self.parser.parse_args()
         user_id = args['user_id']
-        user = session.query(User).filter(User.id == user_id).one()
-        word_lists = user.liked_word_list
-        result = []
-        for word_list in word_lists:
-            result_word_list = {
-                'name': word_list.name,
-                'words': []
-            }
-            words = word_list.words.all()
-            for word in words:
-                result_word_list['words'].append(to_dict(word))
-            result.append(result_word_list)
-        return result
+        try:
+            user = session.query(User).filter(User.id == user_id).one()
+            word_lists = user.liked_word_list
+            result = []
+            for word_list in word_lists:
+                result_word_list = {
+                    'name': word_list.name,
+                    'words': []
+                }
+                words = word_list.words.all()
+                for word in words:
+                    result_word_list['words'].append(to_dict(word))
+                result.append(result_word_list)
+            session.commit()
+            return result
+        except Exception as e:
+            session.rollback()
+            return {'message': str(e)}
+
+
+class PostImage(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('user_id', type=str, help='user id', required=True)
+        self.parser.add_argument('image', type=str, help='image', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        image_str = args['image']
+        user_id = args['user_id']
+        try:
+            path = '//home//images//'
+            image = base64.b64decode(image_str)
+            image_name = get_time_stamp() + ".jpg"
+            print(image_name)
+            file = open(path + image_name, 'wb')
+            file.write(image)
+            file.close()
+            # 更新数据库
+            user = session.query(User).filter(User.id == user_id).one()
+            user.image_url = 'http://47.103.3.131/' + image_name
+            session.commit()
+            return {'message': 'success'}, 200
+        except Exception as e:
+            session.rollback()
+            return {'message': str(e)}, 400
 
 
 api.add_resource(Register, '/register', methods=['POST'])
 api.add_resource(Login, '/login', methods=['POST'])
 api.add_resource(GetUserInfoById, '/getUserInfo', methods=['POST'])
+api.add_resource(EditUserInfoById, '/editUserInfo', methods=['POST'])
 
 api.add_resource(SearchWord, '/searchWord', methods=['POST'])
 api.add_resource(WordDetail, '/wordDetail', methods=['POST'])
@@ -391,6 +481,8 @@ api.add_resource(DelWordListById, '/delWordList', methods=['POST'])
 api.add_resource(GetAllUserLikedWordList, '/getAllUserLikedWordList', methods=['POST'])
 api.add_resource(LikedWordList, '/likedWordList', methods=['POST'])
 api.add_resource(DislikedWordList, '/dislikedWordList', methods=['POST'])
+
+api.add_resource(PostImage, '/postImage', methods=['POST'])
 
 if __name__ == '__main__':
     # app.run(host='0.0.0.0', port=5000)
