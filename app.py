@@ -70,9 +70,8 @@ class WordList(Base):
     name = sqlalchemy.Column("name", sqlalchemy.String(50), nullable=False)
     image_url = sqlalchemy.Column("image_url", sqlalchemy.String(255), nullable=True)
     description = sqlalchemy.Column("description", sqlalchemy.String(255), nullable=True)
-    create_time = sqlalchemy.Column("create_time", sqlalchemy.DATE, default=datetime.datetime.utcnow())
 
-    # todo 级联删除
+    # 级联删除
     words = relationship('Word',
                          secondary=word_wordList,
                          backref=backref('word', lazy='dynamic', cascade="all,delete"),
@@ -248,20 +247,33 @@ class AddWordList(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument('user_id', type=int, help='user id', required=True)
-        self.parser.add_argument('name', type=str, help='word list name', required=True)
+        self.parser.add_argument('wordList_name', type=str, help='word list name', required=True)
 
     def post(self):
         args = self.parser.parse_args()
         user_id = args["user_id"]
-        name = args["name"]
+        name = args["wordList_name"]
         word_list = WordList(user_id=user_id, name=name, image_url='', description='什么都没有...')
         try:
             session.add(word_list)
             session.commit()
-            return {'message': '成功'}
+            add_word_list = session.query(WordList).filter(WordList.id == word_list.id).one()
+            owner = session.query(User).filter(User.id == user_id).one()
+            session.commit()
+            json = {
+                'id': add_word_list.id,
+                'name': add_word_list.name,
+                'words': [],
+                'image_url': add_word_list.image_url,
+                'description': add_word_list.description,
+                'ownerImage_url': owner.image_url,
+                'ownerName': owner.nickname,
+                'user_id': owner.id
+            }
+            return json, 200
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}
+            return {'message': str(e)}, 400
 
 
 # 修改单词表
@@ -299,20 +311,19 @@ class EditWordListById(Resource):
 class DelWordListById(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument('id', type=int, help='word list id', required=True)
+        self.parser.add_argument('wordList_id', type=int, help='word list id', required=True)
 
     def post(self):
         args = self.parser.parse_args()
-        word_list_id = args['id']
+        word_list_id = args['wordList_id']
         try:
             # user_id = 8
-            word_list = session.query(WordList).filter(WordList.id == word_list_id)
-            word_list.user_id = 8
+            word_list = session.query(WordList).filter(WordList.id == word_list_id).update({"user_id": 8})
             session.commit()
-            return {'message': '成功'}
+            return {'message': '成功'}, 200
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}
+            return {'message': str(e)}, 400
 
 
 # 获取用户所有单词表
@@ -408,7 +419,7 @@ class LikedWordList(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument('user_id', type=int, help='user id', required=True)
-        self.parser.add_argument('wordList_id', type=str, help='word list id', required=True)
+        self.parser.add_argument('wordList_id', type=int, help='word list id', required=True)
 
     def post(self):
         args = self.parser.parse_args()
@@ -435,7 +446,7 @@ class DislikedWordList(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument('user_id', type=int, help='user id', required=True)
-        self.parser.add_argument('wordList_id', type=str, help='word list id', required=True)
+        self.parser.add_argument('wordList_id', type=int, help='word list id', required=True)
 
     def post(self):
         args = self.parser.parse_args()
@@ -496,7 +507,7 @@ class GetAllUserLikedWordList(Resource):
 class PostUserImage(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument('user_id', type=str, help='user id', required=True)
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
         self.parser.add_argument('image', type=str, help='image', required=True)
 
     def post(self):
@@ -524,7 +535,7 @@ class PostUserImage(Resource):
 class PostWordListImage(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument('wordList_id', type=str, help='user id', required=True)
+        self.parser.add_argument('wordList_id', type=int, help='word list id', required=True)
         self.parser.add_argument('image', type=str, help='image', required=True)
 
     def post(self):
@@ -549,6 +560,32 @@ class PostWordListImage(Resource):
             return {'message': str(e)}, 400
 
 
+class JudgeUserLiked(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('wordList_id', type=int, help='word list id', required=True)
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        user_id = args['user_id']
+        word_list_id = args['wordList_id']
+        try:
+            liked_word_list_cnt = session.execute(select([user_wordList]).where(
+                and_(
+                    user_wordList.c.user_id == user_id,
+                    user_wordList.c.wordList_id == word_list_id)
+            )).rowcount
+            session.commit()
+            if liked_word_list_cnt == 0:
+                return {'message': False}, 400
+            else:
+                return {'message': True}, 200
+        except Exception as e:
+            session.rollback()
+            return {'message': str(e)}, 400
+
+
 api.add_resource(Register, '/register', methods=['POST'])
 api.add_resource(Login, '/login', methods=['POST'])
 api.add_resource(GetUserInfoById, '/getUserInfo', methods=['POST'])
@@ -562,7 +599,6 @@ api.add_resource(AddWordToWordList, '/addWordToWordList', methods=['POST'])
 api.add_resource(DelWordFromWordList, '/delWordFromWordList', methods=['POST'])
 
 api.add_resource(AddWordList, '/addWordList', methods=['POST'])
-
 api.add_resource(DelWordListById, '/delWordList', methods=['POST'])
 api.add_resource(EditWordListById, '/editWordList', methods=['POST'])
 
@@ -572,6 +608,8 @@ api.add_resource(DislikedWordList, '/dislikedWordList', methods=['POST'])
 
 api.add_resource(PostUserImage, '/postUserImage', methods=['POST'])
 api.add_resource(PostWordListImage, '/postWordListImage', methods=['POST'])
+
+api.add_resource(JudgeUserLiked, '/judgeUserLiked', methods=['POST'])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
