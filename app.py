@@ -14,6 +14,8 @@ import sqlalchemy.ext.declarative
 import functools
 import datetime
 import os, base64, time
+import cal_similarity
+import json
 
 app = Flask(__name__)
 api = Api(app)
@@ -586,6 +588,31 @@ class JudgeUserLiked(Resource):
             return {'message': str(e)}, 400
 
 
+class SortWordsBySimilarity(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('words', action='append')
+
+    def post(self):
+        args = self.parser.parse_args()
+        words = args['words']
+        print(words)
+        try:
+            words_only_has_name = [eval(word)['name'] for word in words]
+            sorted_words = cal_similarity.sort_word_list(words_only_has_name)
+            result_json = []
+            for word in sorted_words:
+                for original_word in words:
+                    original_word = eval(original_word)
+                    if original_word['name'] == word:
+                        result_json.append({"id": original_word['id'], "name": word, "meaning": original_word['meaning']})
+                        break
+            return result_json, 200
+        except Exception as e:
+            print(e)
+            return {'message': '失败'}, 400
+
+
 api.add_resource(Register, '/register', methods=['POST'])
 api.add_resource(Login, '/login', methods=['POST'])
 api.add_resource(GetUserInfoById, '/getUserInfo', methods=['POST'])
@@ -610,6 +637,8 @@ api.add_resource(PostUserImage, '/postUserImage', methods=['POST'])
 api.add_resource(PostWordListImage, '/postWordListImage', methods=['POST'])
 
 api.add_resource(JudgeUserLiked, '/judgeUserLiked', methods=['POST'])
+
+api.add_resource(SortWordsBySimilarity, '/sortWordBySimilarity', methods=['POST'])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
