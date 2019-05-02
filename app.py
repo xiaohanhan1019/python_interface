@@ -62,6 +62,7 @@ class Word(Base):
     id = sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True)
     name = sqlalchemy.Column("name", sqlalchemy.String(50), nullable=False)
     meaning = sqlalchemy.Column("meaning", sqlalchemy.String(255), nullable=False)
+    pronounce = sqlalchemy.Column("pronounce", sqlalchemy.String(255), nullable=True)
 
 
 class WordList(Base):
@@ -168,12 +169,12 @@ class Register(Resource):
             if exist_user_count == 0:
                 session.add(user)
                 session.commit()
-                return {'message': '注册成功'}, 200
+                return {'msg': '注册成功'}, 200
             else:
-                return {'message': '用户名已存在'}, 401
+                return {'msg': '用户名已存在'}, 401
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}, 400
+            return {'msg': str(e)}, 400
 
 
 # 登陆接口
@@ -194,10 +195,10 @@ class Login(Resource):
             if exist_user.password == password:
                 return to_dict(exist_user), 200
             else:
-                return {'message': '密码不正确'}, 401
+                return {'msg': '密码不正确'}, 401
         except Exception as e:
             session.rollback()
-            return {'message': '用户不存在' + str(e)}, 400
+            return {'msg': '用户不存在' + str(e)}, 400
 
 
 # 获取用户信息
@@ -215,7 +216,7 @@ class GetUserInfoById(Resource):
             return to_dict(user)
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}
+            return {'msg': str(e)}
 
 
 # 修改用户信息
@@ -238,10 +239,10 @@ class EditUserInfoById(Resource):
             if status is not None:
                 user.status = status
             session.commit()
-            return {'message': '修改成功'}, 200
+            return {'msg': '修改成功'}, 200
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}, 400
+            return {'msg': str(e)}, 400
 
 
 # 新建单词表
@@ -275,7 +276,7 @@ class AddWordList(Resource):
             return json, 200
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}, 400
+            return {'msg': str(e)}, 400
 
 
 # 修改单词表
@@ -302,10 +303,10 @@ class EditWordListById(Resource):
             if image_url is not None:
                 word_list.image_url = image_url
             session.commit()
-            return {'message': '修改成功'}, 200
+            return {'msg': '修改成功'}, 200
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}, 400
+            return {'msg': str(e)}, 400
 
 
 # 删除单词表
@@ -322,10 +323,10 @@ class DelWordListById(Resource):
             # user_id = 8
             word_list = session.query(WordList).filter(WordList.id == word_list_id).update({"user_id": 8})
             session.commit()
-            return {'message': '成功'}, 200
+            return {'msg': '成功'}, 200
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}, 400
+            return {'msg': str(e)}, 400
 
 
 # 获取用户所有单词表
@@ -360,7 +361,7 @@ class GetAllUserWordListByUserId(Resource):
             return result
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}
+            return {'msg': str(e)}
 
 
 # 单词表添加单词
@@ -377,10 +378,10 @@ class AddWordToWordList(Resource):
         try:
             session.execute(word_wordList.insert().values(wordList_id=word_list_id, word_id=word_id))
             session.commit()
-            return {'message': '成功'}, 200
+            return {'msg': '成功'}, 200
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}, 400
+            return {'msg': str(e)}, 400
 
 
 # 单词表删除单词
@@ -402,7 +403,7 @@ class DelWordFromWordList(Resource):
                     word_wordList.c.wordList_id == word_list_id)
             )).rowcount
             if word_cnt == 0:
-                return {'message': '删除的单词并不在单词表中'}, 400
+                return {'msg': '删除的单词并不在单词表中'}, 400
 
             session.execute(word_wordList.delete().where(
                 and_(
@@ -410,10 +411,10 @@ class DelWordFromWordList(Resource):
                     word_wordList.c.wordList_id == word_list_id)
             ))
             session.commit()
-            return {'message': '成功'}, 200
+            return {'msg': '成功'}, 200
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}, 400
+            return {'msg': str(e)}, 400
 
 
 # 收藏单词表
@@ -432,14 +433,14 @@ class LikedWordList(Resource):
             # 用户不可收藏自己的单词表
             word_list = session.query(WordList).filter(WordList.id == word_list_id).one()
             if word_list.user_id == user_id:
-                return {'message': '你不能收藏自己的单词表'}
+                return {'msg': '你不能收藏自己的单词表'}
 
             session.execute(user_wordList.insert().values(user_id=user_id, wordList_id=word_list_id))
             session.commit()
-            return {'message': '成功'}
+            return {'msg': '成功'}
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}
+            return {'msg': str(e)}
 
 
 # 取消收藏单词表
@@ -464,10 +465,10 @@ class DislikedWordList(Resource):
                     user_wordList.c.wordList_id == word_list_id)
             ))
             session.commit()
-            return {'message': '成功'}
+            return {'msg': '成功'}
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}
+            return {'msg': str(e)}
 
 
 # 获取用户收藏单词表
@@ -503,9 +504,10 @@ class GetAllUserLikedWordList(Resource):
             return result
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}
+            return {'msg': str(e)}
 
 
+# 上传图片到服务器
 class PostUserImage(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
@@ -528,12 +530,13 @@ class PostUserImage(Resource):
             user = session.query(User).filter(User.id == user_id).one()
             user.image_url = 'http://47.103.3.131/' + image_name
             session.commit()
-            return {'message': 'success'}, 200
+            return {'msg': 'success'}, 200
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}, 400
+            return {'msg': str(e)}, 400
 
 
+# 上传词单封面
 class PostWordListImage(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
@@ -556,12 +559,13 @@ class PostWordListImage(Resource):
             word_list = session.query(WordList).filter(WordList.id == word_list_id).one()
             word_list.image_url = 'http://47.103.3.131/' + image_name
             session.commit()
-            return {'message': 'success'}, 200
+            return {'msg': 'success'}, 200
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}, 400
+            return {'msg': str(e)}, 400
 
 
+# 判断用户是否已收藏该词单
 class JudgeUserLiked(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
@@ -580,14 +584,15 @@ class JudgeUserLiked(Resource):
             )).rowcount
             session.commit()
             if liked_word_list_cnt == 0:
-                return {'message': False}, 400
+                return {'msg': False}, 400
             else:
-                return {'message': True}, 200
+                return {'msg': True}, 200
         except Exception as e:
             session.rollback()
-            return {'message': str(e)}, 400
+            return {'msg': str(e)}, 400
 
 
+# 按相似度排序
 class SortWordsBySimilarity(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
@@ -596,7 +601,7 @@ class SortWordsBySimilarity(Resource):
     def post(self):
         args = self.parser.parse_args()
         words = args['words']
-        print(words)
+
         try:
             words_only_has_name = [eval(word)['name'] for word in words]
             sorted_words = cal_similarity.sort_word_list(words_only_has_name)
@@ -610,7 +615,29 @@ class SortWordsBySimilarity(Resource):
             return result_json, 200
         except Exception as e:
             print(e)
-            return {'message': '失败'}, 400
+            return {'msg': str(e)}, 400
+
+
+# 自己添加数据用
+class BatchAddWordToWordList(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('wordList_id', type=int, help='word list id', required=True)
+        self.parser.add_argument('words', action='append')
+
+    def post(self):
+        args = self.parser.parse_args()
+        word_list_id = args['wordList_id']
+        words = args['words']
+        try:
+            for word in words:
+                word_with_id = session.query(Word).filter(Word.name == word).one()
+                session.execute(word_wordList.insert().values(wordList_id=word_list_id, word_id=word_with_id.id))
+            session.commit()
+            return {'msg': '成功'}, 200
+        except Exception as e:
+            session.rollback()
+            return {'msg': str(e)}, 400
 
 
 api.add_resource(Register, '/register', methods=['POST'])
@@ -639,6 +666,8 @@ api.add_resource(PostWordListImage, '/postWordListImage', methods=['POST'])
 api.add_resource(JudgeUserLiked, '/judgeUserLiked', methods=['POST'])
 
 api.add_resource(SortWordsBySimilarity, '/sortWordBySimilarity', methods=['POST'])
+
+api.add_resource(BatchAddWordToWordList, '/batchAddWordToWordList', methods=['POST'])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
