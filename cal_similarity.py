@@ -53,6 +53,7 @@ def get_similarity(word1, word2):
     return 0.6 * word2vec_sim + 0.4 * lcs_sim
 
 
+# 基于LCS和word2vec对单词表重新排序
 def sort_word_list(word_list):
     none_similarity = []
 
@@ -102,6 +103,24 @@ def sort_word_list(word_list):
     return ordered_list
 
 
+# 返回与word相似度最高的单词
+def get_most_similar_word(word):
+    similar_words = []
+    try:
+        result = model.wv.most_similar(word)
+        for item in result:
+            if len(similar_words) >= 3:
+                break
+            if item[1] > 0.6:
+                similar_words.append(item[0])
+            else:
+                break
+    except KeyError:
+        print("none")
+
+    return similar_words
+
+
 # model2 = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True)
 model = Word2Vec.load('./text8_model')
 similarity = {}
@@ -118,4 +137,4 @@ similarity = {}
 # print(model.most_similar('level'))
 # print(lcs('apple','orange'))
 # print(sort_word_list(words))
-# print(model.wv.most_similar('absurd'))
+# print(model.wv.most_similar('exclaim'))

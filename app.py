@@ -82,6 +82,24 @@ class WordList(Base):
                          )
 
 
+class Moment(Base):
+    __tablename__ = 'user_learn_wordList_record'
+
+    id = sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True)
+    user_id = sqlalchemy.Column("user_id", sqlalchemy.Integer, ForeignKey("user.id"), nullable=False)
+    word_list_id = sqlalchemy.Column("wordList_id", sqlalchemy.Integer, ForeignKey("wordList.id"), nullable=False)
+    create_time = sqlalchemy.Column("create_time", sqlalchemy.DateTime, nullable=True,
+                                    default=datetime.datetime.now())
+
+
+class Follow(Base):
+    __tablename__ = 'user_follow'
+
+    user_id = sqlalchemy.Column("user_id", sqlalchemy.Integer, ForeignKey("user.id"), primary_key=True, nullable=False)
+    follow_user_id = sqlalchemy.Column("follow_user_id", sqlalchemy.Integer,
+                                       ForeignKey("user.id"), primary_key=True, nullable=False)
+
+
 # 按照小写字典序,对搜索结果进行排序
 def cmp_ignore_case(s1, s2):
     s1 = s1.lower()
@@ -126,7 +144,8 @@ class SearchWord(Resource):
             for word_name in result:
                 # 这里用One()会有问题
                 word = session.query(Word).filter(Word.name == word_name)[0]
-                result_json.append({"id": word.id, "name": word_name, "meaning": word.meaning})
+                result_json.append(
+                    {"id": word.id, "name": word_name, "meaning": word.meaning, "pronounce": word.pronounce})
             session.commit()
             return result_json, 200
         except Exception as e:
@@ -213,10 +232,10 @@ class GetUserInfoById(Resource):
         try:
             user = session.query(User).filter(User.id == user_id).one()
             session.commit()
-            return to_dict(user)
+            return to_dict(user), 200
         except Exception as e:
             session.rollback()
-            return {'msg': str(e)}
+            return {'msg': str(e)}, 400
 
 
 # 修改用户信息
@@ -329,6 +348,41 @@ class DelWordListById(Resource):
             return {'msg': str(e)}, 400
 
 
+class SearchWordList(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('search', type=str, help='your search string', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        search = args['search']
+        try:
+            word_lists = session.query(WordList).filter(WordList.name.like('%'+search+'%')).all()
+            result = []
+            for word_list in word_lists:
+                user = session.query(User).filter(User.id == word_list.user_id).one()
+                result_word_list = {
+                    'id': word_list.id,
+                    'name': word_list.name,
+                    'words': [],
+                    'image_url': word_list.image_url,
+                    'description': word_list.description,
+                    'ownerName': user.nickname,
+                    'ownerImage_url': user.image_url,
+                    'user_id': user.id
+                }
+                words = word_list.words.all()
+                for word in words:
+                    result_word_list['words'].append(to_dict(word))
+                result.append(result_word_list)
+            session.commit()
+            return result, 200
+        except Exception as e:
+            print(e)
+            session.rollback()
+            return {"msg": str(e)}, 400
+
+
 # 获取用户所有单词表
 class GetAllUserWordListByUserId(Resource):
     def __init__(self):
@@ -358,10 +412,10 @@ class GetAllUserWordListByUserId(Resource):
                     result_word_list['words'].append(to_dict(word))
                 result.append(result_word_list)
             session.commit()
-            return result
+            return result, 200
         except Exception as e:
             session.rollback()
-            return {'msg': str(e)}
+            return {'msg': str(e)}, 400
 
 
 # 单词表添加单词
@@ -433,14 +487,14 @@ class LikedWordList(Resource):
             # 用户不可收藏自己的单词表
             word_list = session.query(WordList).filter(WordList.id == word_list_id).one()
             if word_list.user_id == user_id:
-                return {'msg': '你不能收藏自己的单词表'}
+                return {'msg': '你不能收藏自己的单词表'}, 400
 
             session.execute(user_wordList.insert().values(user_id=user_id, wordList_id=word_list_id))
             session.commit()
-            return {'msg': '成功'}
+            return {'msg': '成功'}, 200
         except Exception as e:
             session.rollback()
-            return {'msg': str(e)}
+            return {'msg': str(e)}, 400
 
 
 # 取消收藏单词表
@@ -456,8 +510,6 @@ class DislikedWordList(Resource):
         user_id = args["user_id"]
         word_list_id = args["wordList_id"]
 
-        # 不可取消未收藏的单词表
-
         try:
             session.execute(user_wordList.delete().where(
                 and_(
@@ -465,10 +517,10 @@ class DislikedWordList(Resource):
                     user_wordList.c.wordList_id == word_list_id)
             ))
             session.commit()
-            return {'msg': '成功'}
+            return {'msg': '成功'}, 200
         except Exception as e:
             session.rollback()
-            return {'msg': str(e)}
+            return {'msg': str(e)}, 400
 
 
 # 获取用户收藏单词表
@@ -501,10 +553,10 @@ class GetAllUserLikedWordList(Resource):
                     result_word_list['words'].append(to_dict(word))
                 result.append(result_word_list)
             session.commit()
-            return result
+            return result, 200
         except Exception as e:
             session.rollback()
-            return {'msg': str(e)}
+            return {'msg': str(e)}, 400
 
 
 # 上传图片到服务器
@@ -610,7 +662,9 @@ class SortWordsBySimilarity(Resource):
                 for original_word in words:
                     original_word = eval(original_word)
                     if original_word['name'] == word:
-                        result_json.append({"id": original_word['id'], "name": word, "meaning": original_word['meaning']})
+                        result_json.append(
+                            {"id": original_word['id'], "name": word,
+                             "meaning": original_word['meaning'], "pronounce": original_word['pronounce']})
                         break
             return result_json, 200
         except Exception as e:
@@ -640,6 +694,209 @@ class BatchAddWordToWordList(Resource):
             return {'msg': str(e)}, 400
 
 
+class GetSimilarWords(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('word', type=str, help='word', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        word = args['word'].lower()
+        similar_words = cal_similarity.get_most_similar_word(word)
+        result_json = []
+
+        try:
+            for s_word in similar_words:
+                try:
+                    db_word = session.query(Word).filter(Word.name == s_word)[0]
+                except:
+                    continue
+                result_json.append(
+                    {"id": db_word.id, "name": db_word.name, "meaning": db_word.meaning, "pronounce": db_word.pronounce})
+            session.commit()
+            return result_json, 200
+        except Exception as e:
+            print(e)
+            session.rollback()
+            return result_json, 400
+
+
+class AddMoment(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
+        self.parser.add_argument('wordList_id', type=int, help='word list id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        word_list_id = args['wordList_id']
+        user_id = args['user_id']
+        try:
+            moment = Moment(user_id=user_id, word_list_id=word_list_id)
+            session.add(moment)
+            session.commit()
+            return {'msg': '成功'}, 200
+        except Exception as e:
+            session.rollback()
+            return {'msg': str(e)}, 400
+
+
+class GetMoment(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        user_id = args['user_id']
+        try:
+            moments = session.query(Moment).filter(Moment.user_id == user_id)\
+                .order_by(Moment.create_time.desc()).limit(10).all()
+            result = []
+            for moment in moments:
+                user = session.query(User).filter(User.id == moment.user_id).one()
+                word_list = session.query(WordList).filter(WordList.id == moment.word_list_id).one()
+                result_user = {
+                    'nickname': user.nickname,
+                    'id': user.id,
+                    'status': user.status,
+                    'image_url': user.image_url
+                }
+
+                result_word_list = {
+                    'id': word_list.id,
+                    'name': word_list.name,
+                    'words': [],
+                    'image_url': word_list.image_url,
+                    'description': word_list.description,
+                    'ownerImage_url': user.image_url,
+                    'ownerName': user.nickname,
+                    'user_id': user.id
+                }
+                words = word_list.words.all()
+                for word in words:
+                    result_word_list['words'].append(to_dict(word))
+
+                result_moment = {
+                    'wordList': result_word_list,
+                    'user': result_user,
+                    'create_time': moment.create_time.strftime("%Y-%m-%d %H:%M:%S")
+                }
+
+                result.append(result_moment)
+            session.commit()
+            return result, 200
+        except Exception as e:
+            session.rollback()
+            return {'msg': str(e)}, 400
+
+
+class FollowUser(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
+        self.parser.add_argument('follow_user_id', type=int, help='user id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        user_id = args['user_id']
+        follow_user_id = args['follow_user_id']
+        try:
+            follow = Follow(user_id=user_id, follow_user_id=follow_user_id)
+            session.add(follow)
+            session.commit()
+            return {'msg': '成功'}, 200
+        except Exception as e:
+            session.rollback()
+            return {'msg': str(e)}, 400
+
+
+class UnFollowUser(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
+        self.parser.add_argument('follow_user_id', type=int, help='user id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        user_id = args['user_id']
+        follow_user_id = args['follow_user_id']
+        try:
+            follow = session.query(Follow).filter(Follow.user_id == user_id)\
+                .filter(Follow.follow_user_id == follow_user_id).one()
+            session.delete(follow)
+            session.commit()
+            return {'msg': '成功'}, 200
+        except Exception as e:
+            session.rollback()
+            return {'msg': str(e)}, 400
+
+
+class GetUserFollowedUser(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        user_id = args['user_id']
+        try:
+            follows = session.query(Follow).filter(Follow.user_id == user_id)
+            result = []
+            for follow in follows:
+                followed_user = session.query(User).filter(User.id == follow.follow_user_id).one()
+                result.append(to_dict(followed_user))
+            session.commit()
+            return result, 200
+        except Exception as e:
+            session.rollback()
+            return {'msg': str(e)}, 400
+
+
+# 判断用户是否关注该用户
+class JudgeIsFollowed(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('user_id', type=int, help='user id', required=True)
+        self.parser.add_argument('follow_user_id', type=int, help='follow user id', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        user_id = args['user_id']
+        follow_user_id = args['follow_user_id']
+        try:
+            cnt = session.query(Follow).filter(Follow.user_id == user_id, Follow.follow_user_id == follow_user_id).count()
+            session.commit()
+            if cnt == 0:
+                return {'msg': False}, 400
+            else:
+                return {'msg': True}, 200
+        except Exception as e:
+            session.rollback()
+            return {'msg': str(e)}, 400
+
+
+class SearchUser(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument('search', type=str, help='your search string', required=True)
+
+    def post(self):
+        args = self.parser.parse_args()
+        search = args['search']
+        try:
+            users = session.query(User).filter(User.nickname.like('%'+search+'%')).all()
+            result = []
+            for user in users:
+                result.append(to_dict(user))
+            session.commit()
+            return result, 200
+        except Exception as e:
+            print(e)
+            session.rollback()
+            return result, 400
+
+
 api.add_resource(Register, '/register', methods=['POST'])
 api.add_resource(Login, '/login', methods=['POST'])
 api.add_resource(GetUserInfoById, '/getUserInfo', methods=['POST'])
@@ -655,17 +912,27 @@ api.add_resource(DelWordFromWordList, '/delWordFromWordList', methods=['POST'])
 api.add_resource(AddWordList, '/addWordList', methods=['POST'])
 api.add_resource(DelWordListById, '/delWordList', methods=['POST'])
 api.add_resource(EditWordListById, '/editWordList', methods=['POST'])
+api.add_resource(SearchWordList, '/searchWordList', methods=['POST'])
 
 api.add_resource(GetAllUserLikedWordList, '/getAllUserLikedWordList', methods=['POST'])
 api.add_resource(LikedWordList, '/likedWordList', methods=['POST'])
 api.add_resource(DislikedWordList, '/dislikedWordList', methods=['POST'])
+api.add_resource(JudgeUserLiked, '/judgeUserLiked', methods=['POST'])
 
 api.add_resource(PostUserImage, '/postUserImage', methods=['POST'])
 api.add_resource(PostWordListImage, '/postWordListImage', methods=['POST'])
 
-api.add_resource(JudgeUserLiked, '/judgeUserLiked', methods=['POST'])
-
 api.add_resource(SortWordsBySimilarity, '/sortWordBySimilarity', methods=['POST'])
+api.add_resource(GetSimilarWords, '/getSimilarWords', methods=['POST'])
+
+api.add_resource(AddMoment, '/addMoment', methods=['POST'])
+api.add_resource(GetMoment, '/getMoment', methods=['POST'])
+
+api.add_resource(JudgeIsFollowed, '/judgeIsFollowed', methods=['POST'])
+api.add_resource(FollowUser, '/followUser', methods=['POST'])
+api.add_resource(UnFollowUser, '/unFollowUser', methods=['POST'])
+api.add_resource(GetUserFollowedUser, '/getFollowedUser', methods=['POST'])
+api.add_resource(SearchUser, '/searchUser', methods=['POST'])
 
 api.add_resource(BatchAddWordToWordList, '/batchAddWordToWordList', methods=['POST'])
 
