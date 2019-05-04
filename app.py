@@ -23,7 +23,7 @@ import random
 app = Flask(__name__)
 api = Api(app)
 
-engine = sqlalchemy.create_engine("mysql+pymysql://root:SSZZhh~~!!22@47.103.3.131:3306/word_chain", encoding="utf8",
+engine = sqlalchemy.create_engine("mysql+pymysql://root:password@47.103.3.131:3306/word_chain", encoding="utf8",
                                   echo=False)
 Base = sqlalchemy.ext.declarative.declarative_base()
 
