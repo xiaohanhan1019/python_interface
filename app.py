@@ -949,9 +949,20 @@ class GetRecommendWordList(Resource):
             random.shuffle(word_list_all)
             # 如果还不够
             if len(word_list_all) <= 3:
-                word_list = session.query(WordList).all()
-                random.shuffle(word_list)
-                word_list_all.extend(word_list[:3])
+                db_all_word_list = session.query(WordList).all()
+                # 去掉用户自己创建的以及收藏的
+                for word_list in db_all_word_list:
+                    if word_list.user_id == user_id:
+                        db_all_word_list.remove(word_list)
+                    liked_word_list_cnt = session.execute(select([user_wordList]).where(
+                        and_(
+                            user_wordList.c.user_id == user_id,
+                            user_wordList.c.wordList_id == word_list.id)
+                    )).rowcount
+                    if liked_word_list_cnt != 0:
+                        db_all_word_list.remove(word_list)
+                random.shuffle(db_all_word_list)
+                word_list_all.extend(db_all_word_list[:3])
             # 返回
             random.shuffle(word_list_all)
             result = []
