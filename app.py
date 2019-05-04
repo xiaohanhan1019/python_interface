@@ -13,9 +13,12 @@ import sqlalchemy.ext.declarative
 
 import functools
 import datetime
-import os, base64, time
+import base64
+import time
 import cal_similarity
-import requests, json, random
+import requests
+import json
+import random
 
 app = Flask(__name__)
 api = Api(app)
